@@ -28,6 +28,7 @@ const server = http.createServer(app);
 const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5173',
+  '*',
 ];
 
 app.use(cors({
