@@ -48,7 +48,7 @@ export const register = async (req, res) => {
   }
 };
 
-// Login
+
 export const login = async (req, res) => {
   try {
     const { adminEmail, password } = req.body;
@@ -71,6 +71,7 @@ export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
     // Dummy check (in prod: lookup OTP store/db/cache)
+    
     if (otp !== '123456') return res.status(400).json({ message: 'Invalid OTP' });
     res.status(200).json({ message: 'OTP verified' });
   } catch (err) {
