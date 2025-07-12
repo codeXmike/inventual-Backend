@@ -2,13 +2,19 @@ import mongoose from 'mongoose';
 
 const businessSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    owner_name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    phone: { type: String },
-    address: { type: String },
-    industry: { type: String },
+    businessName: { type: String, required: true, trim: true },
+    businessEmail: { type: String, required: true, unique: true },
+    businessPhone: { type: String },
+    businessAddress: { type: String },
+    industryType: { type: String },
+    currency: { type: String },
     logo: { type: String },
+
+    adminName: { type: String, required: true },
+    adminEmail: { type: String, required: true, unique: true },
+    phone: { type: String },
+    password: { type: String, required: true },
+
     registration_number: { type: String },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' }
   },
