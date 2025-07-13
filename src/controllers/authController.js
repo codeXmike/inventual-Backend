@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Business from '../models/Business.js';
+import { getNextBusinessId } from '../utils/getNextID.js';
+import Employee from "../models/Employee.js";
 
 
 
@@ -24,8 +26,15 @@ export const register = async (req, res) => {
     if (existing) return res.status(400).json({ message: 'Admin email already in use' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const generateCustomId = async (businessName) => {
+      const cleanName = businessEmail.replace(/\s+/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
+      const random = Math.floor(1000 + Math.random() * 9000);
+      return `${cleanName}${random}`;
+    };
+    const businessId = await generateCustomId();
 
     const business = new Business({
+      businessId,
       businessName,
       businessEmail,
       businessPhone,
@@ -51,16 +60,42 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { adminEmail, password } = req.body;
-    const business = await Business.findOne({ adminEmail });
+    const { businessId, email, password } = req.body;
 
-    if (!business) return res.status(404).json({ message: 'Admin not found' });
+    const business = await Business.findOne({businessId});
+    if (!business) return res.status(404).json({ message: 'Business not found' });
 
-    const isMatch = await bcrypt.compare(password, business.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    let user = null;
+    let role = null;
 
-    const token = jwt.sign({ id: business._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(200).json({ token, business });
+    if (business.adminEmail === email) {
+      const isMatch = await bcrypt.compare(password, business.password);
+      if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+      user = {
+        id: business._id,
+        name: business.adminName,
+        email: business.adminEmail,
+      };
+      role = 'admin';
+    } else {
+      const employee = await Employee.findOne({ email, businessId });
+      if (!employee) return res.status(404).json({ message: 'User not found' });
+
+      const isMatch = await bcrypt.compare(password, employee.password);
+      if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+      user = {
+        id: employee._id,
+        name: employee.name,
+        email: employee.email,
+        store_id: employee.store_id,
+      };
+      role = employee.role;
+    }
+
+    const token = jwt.sign({ id: user.id, businessId, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    res.status(200).json({ token, user, role });
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
@@ -71,7 +106,7 @@ export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
     // Dummy check (in prod: lookup OTP store/db/cache)
-    
+
     if (otp !== '123456') return res.status(400).json({ message: 'Invalid OTP' });
     res.status(200).json({ message: 'OTP verified' });
   } catch (err) {

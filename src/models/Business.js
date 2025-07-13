@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const businessSchema = new mongoose.Schema(
   {
+    businessId: { type: String, unique: true },
     businessName: { type: String, required: true, trim: true },
     businessEmail: { type: String, required: true, unique: true },
     businessPhone: { type: String },
