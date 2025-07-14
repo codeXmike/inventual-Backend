@@ -6,12 +6,12 @@ const employeeSchema = new mongoose.Schema(
     store_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    phone: { type: String },
-    image: { type: String },
-    role: { type: String, enum: ['cashier', 'manager', 'stockist', 'admin'], default: 'cashier' },
-    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
-    password: { type: String },
-    last_login: { type: Date },
+    phone: { type: String, required: true },
+    image: { type: String, required: true },
+    role: { type: String, enum: ['cashier', 'manager', 'stockist', 'admin'], default: 'cashier', required: true },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active', required: true },
+    password: { type: String, required: true },
+    last_login: { type: Date, required: true },
     logs: [
       {
         action: String,
