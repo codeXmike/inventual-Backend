@@ -7,6 +7,7 @@ import { getNextBusinessId } from '../utils/getNextID.js';
 import Employee from "../models/Employee.js";
 import { sendEmail } from '../utils/sendMail.js';
 import { otpHTML } from '../utils/otpTemplate.js';
+import Otp from '../models/Otp.js';
 
 
 export const register = async (req, res) => {
@@ -128,7 +129,11 @@ export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
+    await Otp.create({
+      email,
+      otp,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // expires in 10 minutes
+    });
     await sendEmail(email, 'Your OTP Code', otpHTML(otp));
 
     res.status(200).json({ message: 'OTP sent', otp }); // only show OTP in dev
@@ -139,14 +144,21 @@ export const sendOtp = async (req, res) => {
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    // Dummy check (in prod: lookup OTP store/db/cache)
 
-    if (otp !== '123456') return res.status(400).json({ message: 'Invalid OTP' });
+    const record = await Otp.findOne({ email, otp });
+    if (!record) return res.status(400).json({ message: 'Invalid OTP' });
+
+    if (record.expiresAt < new Date())
+      return res.status(400).json({ message: 'OTP expired' });
+    
+    await Otp.deleteOne({ _id: record._id });
+
     res.status(200).json({ message: 'OTP verified' });
   } catch (err) {
     res.status(500).json({ message: 'OTP verification failed', error: err.message });
   }
 };
+
 
 
 export const forgotPassword = async (req, res) => {

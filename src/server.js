@@ -31,6 +31,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174/',
   'http://localhost:5173/',
+  'https://moni-pos-269s.vercel.app',
+  'https://moni-pos-269s.vercel.app/'
 ];
 
 app.use(cors({
