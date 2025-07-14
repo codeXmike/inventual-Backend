@@ -110,13 +110,14 @@ export const login = async (req, res) => {
         name: employee.name,
         email: employee.email,
         store_id: employee.store_id,
+        role: employee.role
       };
-      role = employee.role;
+      
     }
 
     const token = jwt.sign({ id: user.id, businessId, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.status(200).json({ token, user, role });
+    res.status(200).json({ token, user, business});
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
