@@ -122,6 +122,17 @@ export const login = async (req, res) => {
 };
 
 
+export const sendOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    // Dummy check (in prod: lookup OTP store/db/cache)
+
+    if (otp !== '123456') return res.status(400).json({ message: 'Invalid OTP' });
+    res.status(200).json({ message: 'OTP verified' });
+  } catch (err) {
+    res.status(500).json({ message: 'OTP verification failed', error: err.message });
+  }
+};
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -141,7 +152,6 @@ export const forgotPassword = async (req, res) => {
     const business = await Business.findOne({ email });
     if (!business) return res.status(404).json({ message: 'Email not registered' });
 
-    // You'd send a real email or SMS here
     res.status(200).json({ message: 'OTP sent to your email', otp: '123456' }); // dev only
   } catch (err) {
     res.status(500).json({ message: 'Failed to process request', error: err.message });
