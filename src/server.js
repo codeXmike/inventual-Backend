@@ -29,12 +29,12 @@ const server = http.createServer(app);
 const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5173',
-  '*',
+  'http://localhost:5174/',
+  'http://localhost:5173/',
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
@@ -43,18 +43,7 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
-
-// Handle preflight requests
-app.options('*', cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
-}));
-
 
 app.use(morgan('dev'))
 app.use(bodyParser.json())
