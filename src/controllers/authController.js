@@ -96,8 +96,9 @@ export const login = async (req, res) => {
         id: business._id,
         name: business.adminName,
         email: business.adminEmail,
+        role: 'admin',
       };
-      role = 'admin';
+      
     } else {
       const employee = await Employee.findOne({ email, businessId });
       if (!employee) return res.status(404).json({ message: 'User not found' });
@@ -114,7 +115,6 @@ export const login = async (req, res) => {
       };
       
     }
-
     const token = jwt.sign({ id: user.id, businessId, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.status(200).json({ token, user, business});
