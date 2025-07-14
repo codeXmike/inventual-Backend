@@ -7,6 +7,7 @@ const employeeSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String },
+    image: { type: String },
     role: { type: String, enum: ['cashier', 'manager', 'stockist', 'admin'], default: 'cashier' },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     password: { type: String },

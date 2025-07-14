@@ -5,7 +5,8 @@ import ImageKit from "imagekit";
 import Business from '../models/Business.js';
 import { getNextBusinessId } from '../utils/getNextID.js';
 import Employee from "../models/Employee.js";
-
+import { sendEmail } from '../utils/sendMail.js';
+import { otpHTML } from '../utils/otpTemplate.js';
 
 
 export const register = async (req, res) => {
@@ -124,13 +125,14 @@ export const login = async (req, res) => {
 
 export const sendOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    // Dummy check (in prod: lookup OTP store/db/cache)
+    const { email } = req.body;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    if (otp !== '123456') return res.status(400).json({ message: 'Invalid OTP' });
-    res.status(200).json({ message: 'OTP verified' });
+    await sendEmail(email, 'Your OTP Code', otpHTML(otp));
+
+    res.status(200).json({ message: 'OTP sent', otp }); // only show OTP in dev
   } catch (err) {
-    res.status(500).json({ message: 'OTP verification failed', error: err.message });
+    res.status(500).json({ message: 'Failed to send OTP', error: err.message });
   }
 };
 export const verifyOtp = async (req, res) => {
