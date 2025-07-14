@@ -12,7 +12,7 @@ const businessSchema = new mongoose.Schema(
     logo: { type: String },
 
     adminName: { type: String, required: true },
-    adminEmail: { type: String, required: true, unique: true },
+    adminEmail: { type: String, required: true},
     phone: { type: String },
     password: { type: String, required: true },
 

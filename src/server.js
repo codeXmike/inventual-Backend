@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 import http from 'http'
 import path from 'path';
@@ -20,7 +21,7 @@ import salesRoutes from './routes/salesRoutes.js'
 import storesRoutes from './routes/storesRoutes.js'
 import connectDB from './config/db.js';
 
-dotenv.config();
+
 connectDB();
 
 const app = express();
@@ -63,6 +64,7 @@ app.use('/api/pwa', pwaRoutes);
 
 app.get('/', (req, res) => {
   res.send('Server API is running');
+  
 });
 
 const PORT = process.env.PORT;

@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import ImageKit from "imagekit";
 import Business from '../models/Business.js';
 import { getNextBusinessId } from '../utils/getNextID.js';
 import Employee from "../models/Employee.js";
@@ -15,23 +17,39 @@ export const register = async (req, res) => {
       businessAddress,
       industryType,
       currency,
-      logo,
       adminName,
       adminEmail,
       phone,
-      password,
+      password
     } = req.body;
 
     const existing = await Business.findOne({ adminEmail });
     if (existing) return res.status(400).json({ message: 'Admin email already in use' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const generateCustomId = async (businessName) => {
-      const cleanName = businessEmail.replace(/\s+/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
+
+    const generateCustomId = async (name) => {
+      const cleanName = name.replace(/\s+/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
       const random = Math.floor(1000 + Math.random() * 9000);
       return `${cleanName}${random}`;
     };
-    const businessId = await generateCustomId();
+    const businessId = await generateCustomId(businessName);
+    const imagekit = new ImageKit({
+      publicKey: process.env.IMAGEKIT_PUBLIC,
+      privateKey: process.env.IMAGEKIT_PRIVATE,
+      urlEndpoint: process.env.IMAGEKIT_URL,
+    });
+    let logoUrl = '';
+    if (req.file) {
+      const uploaded = await imagekit.upload({
+        file: fs.readFileSync(req.file.path),
+        fileName: req.file.originalname,
+        folder: 'businesses',
+      });
+      logoUrl = uploaded.url;
+      fs.unlinkSync(req.file.path); 
+    }
+
 
     const business = new Business({
       businessId,
@@ -41,7 +59,7 @@ export const register = async (req, res) => {
       businessAddress,
       industryType,
       currency,
-      logo,
+      logo: logoUrl,
       adminName,
       adminEmail,
       phone,
@@ -53,7 +71,9 @@ export const register = async (req, res) => {
     const token = jwt.sign({ id: saved._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, business: saved });
   } catch (err) {
-    res.status(500).json({ message: 'Registration failed', error: err.message });
+    res.status(500).json({  message: 'Registration failed',
+    error: err.message,
+    stack: err.stack, });
   }
 };
 
