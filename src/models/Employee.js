@@ -11,7 +11,7 @@ const employeeSchema = new mongoose.Schema(
     role: { type: String, enum: ['cashier', 'manager', 'stockist', 'admin'], default: 'cashier', required: true },
     status: { type: String, enum: ['active', 'inactive'], default: 'active', required: true },
     password: { type: String, required: true },
-    last_login: { type: Date, required: true },
+    last_login: { type: Date,},
     logs: [
       {
         action: String,

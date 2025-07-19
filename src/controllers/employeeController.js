@@ -9,41 +9,28 @@ import mongoose from 'mongoose';
 export const getEmployees = async (req, res) => {
   try {
     const { business_id, store_id, status, role, search } = req.query;
-    
-    // Build filter object
-    const filter = {};
-    
-    // Required business_id filter
-    if (!business_id || !mongoose.Types.ObjectId.isValid(business_id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Valid business_id is required'
-      });
-    }
-    filter.business_id = business_id;
 
-    // Optional store filter
+    if (!business_id || !mongoose.Types.ObjectId.isValid(business_id)) {
+      return res.status(400).json({ success: false, error: 'Valid business_id is required' });
+    }
+
+    const filter = { business_id };
+
     if (store_id) {
       if (!mongoose.Types.ObjectId.isValid(store_id)) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid store_id format'
-        });
+        return res.status(400).json({ success: false, error: 'Invalid store_id format' });
       }
       filter.store_id = store_id;
     }
 
-    // Status filter
     if (status && ['active', 'inactive'].includes(status)) {
       filter.status = status;
     }
 
-    // Role filter
     if (role && ['cashier', 'manager', 'stockist', 'admin'].includes(role)) {
       filter.role = role;
     }
 
-    // Search filter
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -54,107 +41,60 @@ export const getEmployees = async (req, res) => {
 
     const employees = await Employee.find(filter)
       .sort({ createdAt: -1 })
-      .select('-password -__v') // Exclude sensitive fields
+      .select('-password -__v')
       .populate('business_id', 'businessName')
       .populate('store_id', 'name');
 
-    res.status(200).json({
-      success: true,
-      count: employees.length,
-      data: employees
-    });
+    res.status(200).json({ success: true, count: employees.length, data: employees });
   } catch (err) {
     console.error(`Error fetching employees: ${err.message}`);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching employees'
-    });
+    res.status(500).json({ success: false, error: 'Server error while fetching employees' });
   }
 };
 
 /**
- * @desc    Create a new employee with required fields
+ * @desc    Create a new employee scoped to a business
  * @route   POST /api/employees
  * @access  Private (Admin)
  */
 export const addEmployee = async (req, res) => {
   try {
-    const requiredFields = [
-      'business_id', 'store_id', 'name', 'email', 
-      'phone', 'image', 'role', 'password'
-    ];
-    
-    // Validate all required fields are present
+    const requiredFields = ['business_id', 'store_id', 'name', 'email', 'phone', 'image', 'role', 'password'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     if (missingFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: `Missing required fields: ${missingFields.join(', ')}`
-      });
+      return res.status(400).json({ success: false, error: `Missing required fields: ${missingFields.join(', ')}` });
     }
 
-    // Validate ObjectId formats
-    if (!mongoose.Types.ObjectId.isValid(req.body.business_id) || 
-        !mongoose.Types.ObjectId.isValid(req.body.store_id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid business_id or store_id format'
-      });
+    const { business_id, email } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(business_id) || !mongoose.Types.ObjectId.isValid(req.body.store_id)) {
+      return res.status(400).json({ success: false, error: 'Invalid business_id or store_id format' });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(req.body.email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid email format'
-      });
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
     }
 
-    // Check for existing employee
-    const existingEmployee = await Employee.findOne({ email: req.body.email });
+    const existingEmployee = await Employee.findOne({ business_id, email });
     if (existingEmployee) {
-      return res.status(409).json({
-        success: false,
-        error: 'Employee with this email already exists'
-      });
+      return res.status(409).json({ success: false, error: 'Employee with this email already exists in this business' });
     }
 
-    // Create new employee with default values
-    const employeeData = {
-      ...req.body,
-      status: 'active',
-      last_login: new Date()
-    };
-
+    const employeeData = { ...req.body, status: 'active', last_login: new Date() };
     const employee = new Employee(employeeData);
     const savedEmployee = await employee.save();
-    
-    // Prepare response data
     const responseData = savedEmployee.toObject();
     delete responseData.password;
     delete responseData.__v;
 
-    res.status(201).json({
-      success: true,
-      data: responseData
-    });
+    res.status(201).json({ success: true, data: responseData });
   } catch (err) {
     console.error(`Error creating employee: ${err.message}`);
-    
     if (err.name === 'ValidationError') {
       const errors = Object.values(err.errors).map(val => val.message);
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        details: errors
-      });
+      return res.status(400).json({ success: false, error: 'Validation error', details: errors });
     }
-
-    res.status(500).json({
-      success: false,
-      error: 'Server error while creating employee'
-    });
+    res.status(500).json({ success: false, error: 'Server error while creating employee' });
   }
 };
 
@@ -512,7 +452,6 @@ export const updateEmployeePassword = async (req, res) => {
     employee.logs.push({
       action: 'Password updated'
     });
-    
     await employee.save();
 
     res.status(200).json({

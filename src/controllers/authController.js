@@ -101,12 +101,16 @@ export const login = async (req, res) => {
       };
       
     } else {
-      const employee = await Employee.findOne({ email, businessId });
+      const employee = await Employee.findOne({ email, business_id: business._id });
       if (!employee) return res.status(404).json({ message: 'User not found' });
 
       const isMatch = await bcrypt.compare(password, employee.password);
       if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
+      // Log login
+      employee.last_login = new Date();
+      employee.logs.push({ action: 'Logged in' });
+      await employee.save();
       user = {
         id: employee._id,
         name: employee.name,
