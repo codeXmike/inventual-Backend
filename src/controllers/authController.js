@@ -27,7 +27,10 @@ export const register = async (req, res) => {
 
     const existing = await Business.findOne({ adminEmail });
     if (existing) return res.status(400).json({ message: 'Admin email already in use' });
-
+    
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const generateCustomId = async (name) => {

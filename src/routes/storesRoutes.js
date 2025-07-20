@@ -8,6 +8,7 @@ import {
 
 const router = express.Router();
 
+
 router.get('/', getStores);
 router.post('/', addStore);
 router.put('/:id', updateStoreInfo);

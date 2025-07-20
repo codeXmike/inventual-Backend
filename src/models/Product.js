@@ -10,7 +10,7 @@ const productSchema = new mongoose.Schema(
     stock_alert: { type: Number, required: true },
     brand: { type: String, required: true },
     barcode: { type: String, required: true },
-    image: { type: String }, // optional if using Cloudinary's URL
+    image: { type: String },
     price: { type: Number, required: true },
     cost_price: { type: Number, required: true },
     description: { type: String }

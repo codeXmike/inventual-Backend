@@ -1,6 +1,6 @@
-import express from 'express';
 import dotenv from 'dotenv';
-dotenv.config();
+await dotenv.config();
+import express from 'express';
 import mongoose from 'mongoose';
 import http from 'http'
 import path from 'path';
@@ -20,7 +20,6 @@ import pwaRoutes from './routes/pwaRoutes.js'
 import salesRoutes from './routes/salesRoutes.js'
 import storesRoutes from './routes/storesRoutes.js'
 import connectDB from './config/db.js';
-
 
 connectDB();
 

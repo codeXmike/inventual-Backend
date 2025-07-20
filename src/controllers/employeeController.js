@@ -1,6 +1,7 @@
 import Employee from '../models/Employee.js';
 import mongoose from 'mongoose';
-
+import ImageKit from 'imagekit';
+import fs from 'fs';
 /**
  * @desc    Get all employees with filtering options
  * @route   GET /api/employees
@@ -59,14 +60,15 @@ export const getEmployees = async (req, res) => {
  */
 export const addEmployee = async (req, res) => {
   try {
-    const requiredFields = ['business_id', 'store_id', 'name', 'email', 'phone', 'image', 'role', 'password'];
+    const requiredFields = ['business_id', 'store_id', 'name', 'email', 'phone', 'role', 'password'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     if (missingFields.length > 0) {
       return res.status(400).json({ success: false, error: `Missing required fields: ${missingFields.join(', ')}` });
     }
 
-    const { business_id, email } = req.body;
-    if (!mongoose.Types.ObjectId.isValid(business_id) || !mongoose.Types.ObjectId.isValid(req.body.store_id)) {
+    const { business_id, store_id, name, email, phone, role, password } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(business_id) || !mongoose.Types.ObjectId.isValid(store_id)) {
       return res.status(400).json({ success: false, error: 'Invalid business_id or store_id format' });
     }
 
@@ -80,7 +82,38 @@ export const addEmployee = async (req, res) => {
       return res.status(409).json({ success: false, error: 'Employee with this email already exists in this business' });
     }
 
-    const employeeData = { ...req.body, status: 'active', last_login: new Date() };
+    // Upload image if provided
+    let image = '';
+    if (req.file) {
+      const imagekit = new ImageKit({
+        publicKey: process.env.IMAGEKIT_PUBLIC,
+        privateKey: process.env.IMAGEKIT_PRIVATE,
+        urlEndpoint: process.env.IMAGEKIT_URL,
+      });
+
+      const uploaded = await imagekit.upload({
+        file: fs.readFileSync(req.file.path),
+        fileName: req.file.originalname,
+        folder: 'employees',
+      });
+
+      image = uploaded.url;
+      fs.unlinkSync(req.file.path);
+    }
+
+    const employeeData = {
+      business_id,
+      store_id,
+      name,
+      email,
+      phone,
+      image,
+      role,
+      password,
+      status: 'active',
+      last_login: new Date()
+    };
+
     const employee = new Employee(employeeData);
     const savedEmployee = await employee.save();
     const responseData = savedEmployee.toObject();
