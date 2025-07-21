@@ -2,6 +2,7 @@ import Employee from '../models/Employee.js';
 import mongoose from 'mongoose';
 import ImageKit from 'imagekit';
 import fs from 'fs';
+import bcrypt from 'bcryptjs';
 /**
  * @desc    Get all employees with filtering options
  * @route   GET /api/employees
@@ -100,7 +101,7 @@ export const addEmployee = async (req, res) => {
       image = uploaded.url;
       fs.unlinkSync(req.file.path);
     }
-
+    const hashedPassword = await bcrypt.hash(password, 10);
     const employeeData = {
       business_id,
       store_id,
@@ -109,7 +110,7 @@ export const addEmployee = async (req, res) => {
       phone,
       image,
       role,
-      password,
+      password:hashedPassword,
       status: 'active',
       last_login: new Date()
     };
