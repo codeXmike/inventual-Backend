@@ -1,11 +1,24 @@
 import Store from '../models/Store.js';
 import mongoose from 'mongoose';
 
-/**
- * @desc    Get all stores under a business
- * @route   GET /api/stores?business_id=...
- * @access  Private
- */
+// GET a single store by ID
+export const getStore = async (req, res) => {
+  try {
+    const { store_id } = req.query;
+
+    if (!store_id || !mongoose.Types.ObjectId.isValid(store_id)) {
+      return res.status(400).json({ success: false, error: 'Invalid store' });
+    }
+
+    const store = await Store.findById(store_id);
+    res.status(200).json({ success: true, data: store });
+  } catch (err) {
+    console.error('Error fetching store:', err.message);
+    res.status(500).json({ success: false, error: 'Server error while fetching store' });
+  }
+};
+
+// GET all stores under a business
 export const getStores = async (req, res) => {
   try {
     const { business_id } = req.query;
@@ -15,7 +28,6 @@ export const getStores = async (req, res) => {
     }
 
     const stores = await Store.find({ business_id }).sort({ createdAt: -1 });
-
     res.status(200).json({ success: true, count: stores.length, data: stores });
   } catch (err) {
     console.error('Error fetching stores:', err.message);
@@ -23,21 +35,16 @@ export const getStores = async (req, res) => {
   }
 };
 
-/**
- * @desc    Create a new store
- * @route   POST /api/stores
- * @access  Private
- */
+// POST create a new store
 export const addStore = async (req, res) => {
   try {
-    const requiredFields = ['business_id', 'name'];
-    const missing = requiredFields.filter(f => !req.body[f]);
+    const { business_id, name } = req.body;
 
-    if (missing.length) {
-      return res.status(400).json({ success: false, error: `Missing fields: ${missing.join(', ')}` });
+    if (!business_id || !name) {
+      return res.status(400).json({ success: false, error: 'business_id and name are required' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(req.body.business_id)) {
+    if (!mongoose.Types.ObjectId.isValid(business_id)) {
       return res.status(400).json({ success: false, error: 'Invalid business_id format' });
     }
 
@@ -51,11 +58,7 @@ export const addStore = async (req, res) => {
   }
 };
 
-/**
- * @desc    Update store info
- * @route   PUT /api/stores/:id
- * @access  Private
- */
+// PUT update store info
 export const updateStoreInfo = async (req, res) => {
   try {
     const { business_id } = req.body;
@@ -80,11 +83,7 @@ export const updateStoreInfo = async (req, res) => {
   }
 };
 
-/**
- * @desc    Delete a store
- * @route   DELETE /api/stores/:id
- * @access  Private
- */
+// DELETE a store
 export const deleteStore = async (req, res) => {
   try {
     const { id } = req.params;
@@ -105,11 +104,7 @@ export const deleteStore = async (req, res) => {
   }
 };
 
-/**
- * @desc    Toggle store open/closed status
- * @route   PATCH /api/stores/:id/toggle-status
- * @access  Private
- */
+// PATCH toggle store status (between active/inactive/closed)
 export const toggleStoreStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -122,7 +117,14 @@ export const toggleStoreStatus = async (req, res) => {
     const store = await Store.findOne({ _id: id, business_id });
     if (!store) return res.status(404).json({ success: false, error: 'Store not found' });
 
-    store.status = store.status === 'open' ? 'closed' : 'open';
+    // Cycle status: active → inactive → closed → active
+    const nextStatus = {
+      active: 'inactive',
+      inactive: 'closed',
+      closed: 'active'
+    };
+
+    store.status = nextStatus[store.status] || 'active';
     await store.save();
 
     res.status(200).json({ success: true, message: `Store is now ${store.status}`, data: store });
@@ -132,32 +134,37 @@ export const toggleStoreStatus = async (req, res) => {
   }
 };
 
-/**
- * @desc    Assign store manager
- * @route   PATCH /api/stores/:id/assign-manager
- * @access  Private
- */
+// PATCH assign store manager (through employees array)
 export const assignStoreManager = async (req, res) => {
   try {
-    const { manager_name, business_id } = req.body;
+    const { manager_id, manager_name, manager_role = 'Manager', business_id } = req.body;
     const { id } = req.params;
 
-    if (!manager_name) {
-      return res.status(400).json({ success: false, error: 'Manager name is required' });
+    if (!manager_id || !manager_name || !business_id) {
+      return res.status(400).json({ success: false, error: 'Missing manager_id, name, or business_id' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(business_id)) {
-      return res.status(400).json({ success: false, error: 'Invalid store_id or business_id' });
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(business_id) || !mongoose.Types.ObjectId.isValid(manager_id)) {
+      return res.status(400).json({ success: false, error: 'Invalid IDs' });
     }
 
-    const store = await Store.findOneAndUpdate(
-      { _id: id, business_id },
-      { manager_name },
-      { new: true }
-    );
-
+    const store = await Store.findOne({ _id: id, business_id });
     if (!store) return res.status(404).json({ success: false, error: 'Store not found' });
 
+    const alreadyExists = store.employees.some(emp => emp.id.toString() === manager_id);
+    if (!alreadyExists) {
+      store.employees.push({
+        id: manager_id,
+        name: manager_name,
+        role: manager_role
+      });
+    } else {
+      store.employees = store.employees.map(emp =>
+        emp.id.toString() === manager_id ? { ...emp, role: manager_role } : emp
+      );
+    }
+
+    await store.save();
     res.status(200).json({ success: true, message: 'Manager assigned successfully', data: store });
   } catch (err) {
     console.error('Error assigning store manager:', err.message);

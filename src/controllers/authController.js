@@ -74,6 +74,10 @@ export const register = async (req, res) => {
     const saved = await business.save();
 
     const token = jwt.sign({ id: saved._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const otpResponse = await sendOtp(adminEmail);
+    if (!otpResponse.success) {
+      return res.status(500).json({ message: 'Failed to send OTP', error: otpResponse.error });
+    }
     res.status(201).json({ token, business: saved });
   } catch (err) {
     res.status(500).json({  message: 'Registration failed',
@@ -132,22 +136,21 @@ export const login = async (req, res) => {
 };
 
 
-export const sendOtp = async (req, res) => {
+const sendOtp = async (email) => {
   try {
-    const { email } = req.body;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await Otp.create({
       email,
       otp,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // expires in 10 minutes
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
     await sendEmail(email, 'Your OTP Code', otpHTML(otp));
-
-    res.status(200).json({ message: 'OTP sent', otp }); // only show OTP in dev
+    return { success: true, otp }; // Optionally return OTP for dev/test
   } catch (err) {
-    res.status(500).json({ message: 'Failed to send OTP', error: err.message });
+    return { success: false, error: err.message };
   }
 };
+
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
